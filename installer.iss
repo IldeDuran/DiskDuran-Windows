@@ -5,7 +5,7 @@
 AppName=DiskDuran
 AppVersion=1.0
 AppPublisher=OCiber
-DefaultDirName={autopf}\DiskDuran
+DefaultDirName={localappdata}\DiskDuran
 DefaultGroupName=DiskDuran
 OutputDir=installer_output
 OutputBaseFilename=DiskDuran_Setup
@@ -14,7 +14,7 @@ SolidCompression=yes
 SetupIconFile=icon.ico
 UninstallDisplayIcon={app}\DiskDuran.exe
 WizardStyle=modern
-PrivilegesRequired=admin
+PrivilegesRequired=lowest
 ArchitecturesInstallIn64BitMode=x64compatible
 
 [Languages]
