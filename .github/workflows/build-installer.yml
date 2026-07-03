@@ -21,11 +21,15 @@ jobs:
       - name: Generate icon
         run: python generate_icon.py
 
+      - name: Generate version info
+        run: python version_info.py
+
       - name: Build exe with PyInstaller
         run: |
           pyinstaller --noconfirm --onedir --windowed `
             --name "DiskDuran" `
             --icon "icon.ico" `
+            --version-file "version_info.txt" `
             --add-data "static;static" `
             --add-data "server.py;." `
             --hidden-import uvicorn.logging `
@@ -41,6 +45,19 @@ jobs:
             --hidden-import uvicorn.lifespan.off `
             --collect-all webview `
             main.py
+
+      - name: Sign exe with SignPath
+        if: vars.SIGNPATH_READY == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORG_ID }}
+          project-slug: "DiskDuran"
+          signing-policy-slug: "release-signing"
+          artifact-configuration-slug: "default"
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: "dist/DiskDuran"
 
       - name: Build installer with Inno Setup
         run: |
