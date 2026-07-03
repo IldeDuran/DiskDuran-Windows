@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DiskDuran</title>
+<style>
+:root {
+  --bg: #f5f5f7;
+  --bg2: #ffffff;
+  --bg3: #f0f0f2;
+  --surface: #ffffff;
+  --blue: #007AFF;
+  --green: #34C759;
+  --yellow: #FF9F0A;
+  --red: #FF3B30;
+  --orange: #FF9500;
+  --indigo: #5856D6;
+  --pink: #FF2D55;
+  --teal: #5AC8FA;
+  --text: #1d1d1f;
+  --text2: #86868b;
+  --text3: #aeaeb2;
+  --border: rgba(0,0,0,.06);
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.04);
+  --shadow-xl: 0 12px 40px rgba(0,0,0,.12);
+  --radius: 12px;
+  --radius-lg: 16px;
+  --topbar-bg: rgba(255,255,255,.72);
+  --topbar-border: rgba(0,0,0,.1);
+  --ring-track: rgba(0,0,0,.06);
+  --seg-bg: rgba(0,0,0,.06);
+  --seg-shadow: 0 1px 3px rgba(0,0,0,.08), 0 .5px 1px rgba(0,0,0,.06);
+  --progress-track: rgba(0,0,0,.08);
+  --modal-bg: rgba(0,0,0,.3);
+  --scroll-thumb: rgba(0,0,0,.12);
+  --scroll-thumb-hover: rgba(0,0,0,.2);
+  --hover-bg: var(--bg3);
+}
+[data-theme="dark"] {
+  --bg: #1c1c1e;
+  --bg2: #2c2c2e;
+  --bg3: #3a3a3c;
+  --surface: #2c2c2e;
+  --blue: #0A84FF;
+  --green: #30D158;
+  --yellow: #FFD60A;
+  --red: #FF453A;
+  --orange: #FF9F0A;
+  --indigo: #5E5CE6;
+  --pink: #FF375F;
+  --teal: #64D2FF;
+  --text: #f5f5f7;
+  --text2: #98989d;
+  --text3: #636366;
+  --border: rgba(255,255,255,.08);
+  --shadow: 0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.2);
+  --shadow-xl: 0 12px 40px rgba(0,0,0,.5);
+  --topbar-bg: rgba(28,28,30,.82);
+  --topbar-border: rgba(255,255,255,.08);
+  --ring-track: rgba(255,255,255,.1);
+  --seg-bg: rgba(255,255,255,.08);
+  --seg-shadow: 0 1px 3px rgba(0,0,0,.3), 0 .5px 1px rgba(0,0,0,.2);
+  --progress-track: rgba(255,255,255,.1);
+  --modal-bg: rgba(0,0,0,.6);
+  --scroll-thumb: rgba(255,255,255,.15);
+  --scroll-thumb-hover: rgba(255,255,255,.25);
+  --hover-bg: var(--bg3);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  height: 100vh; overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dash { display: flex; flex-direction: column; height: 100vh; }
+
+/* ── Toolbar ── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px; background: var(--topbar-bg);
+  backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: .5px solid var(--topbar-border); flex-shrink: 0; z-index: 10;
+}
+.topbar h1 { font-size: 17px; font-weight: 600; color: var(--text); letter-spacing: -.2px; }
+.topbar .subtitle { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.scan-btn {
+  background: var(--blue); border: none; color: #fff;
+  padding: 7px 16px; border-radius: 980px; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all .2s; letter-spacing: -.1px;
+}
+.scan-btn:hover { filter: brightness(1.1); }
+.scan-btn:active { transform: scale(.97); }
+.theme-toggle {
+  width: 32px; height: 32px; border-radius: 50%; border: none;
+  background: var(--seg-bg); cursor: pointer; display: flex;
+  align-items: center; justify-content: center; font-size: 16px;
+  transition: all .3s; flex-shrink: 0;
+}
+.theme-toggle:hover { background: var(--bg3); transform: scale(1.1); }
+.theme-toggle:active { transform: scale(.95); }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.disk-selector {
+  background: var(--surface); color: var(--text); border: .5px solid var(--topbar-border);
+  padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 500;
+  cursor: pointer; appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2386868b'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+  padding-right: 24px; min-width: 120px;
+}
+.disk-selector:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+.disk-select-wrap { display: flex; align-items: center; gap: 8px; margin-top: 20px; }
+.disk-select-wrap label { font-size: 13px; color: var(--text2); }
+.disk-select-wrap .disk-selector { font-size: 14px; padding: 8px 28px 8px 12px; border-radius: 10px; }
+
+/* ── Summary cards ── */
+.summary-strip {
+  display: flex; gap: 12px; padding: 12px 24px 8px; flex-shrink: 0;
+}
+.ss-item {
+  flex: 1; display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; background: var(--surface);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.ss-ring { position: relative; width: 40px; height: 40px; flex-shrink: 0; }
+.ss-ring svg { transform: rotate(-90deg); }
+.ss-ring .ss-pct {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  font-size: 10px; font-weight: 700; color: var(--text);
+}
+.ss-value { font-size: 17px; font-weight: 700; letter-spacing: -.3px; color: var(--text); }
+.ss-label { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.ss-green .ss-value { color: var(--green); }
+.ss-orange .ss-value { color: var(--orange); }
+.ss-red .ss-value { color: var(--red); }
+
+/* ── Segmented control (tabs) ── */
+.tab-bar {
+  display: flex; gap: 2px; padding: 8px 24px; flex-shrink: 0;
+  justify-content: center;
+}
+.tab-bar-inner {
+  display: inline-flex; gap: 1px; background: var(--seg-bg);
+  border-radius: 8px; padding: 2px;
+}
+.tab-btn {
+  padding: 6px 14px; font-size: 12px; font-weight: 500;
+  background: none; border: none; color: var(--text2);
+  cursor: pointer; border-radius: 6px;
+  transition: all .2s; display: flex; align-items: center; gap: 5px;
+  letter-spacing: -.1px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  background: var(--surface); color: var(--text);
+  box-shadow: var(--seg-shadow);
+  font-weight: 600;
+}
+.tab-btn .tab-badge {
+  font-size: 9px; background: var(--seg-bg); padding: 1px 5px;
+  border-radius: 980px; font-weight: 600; color: var(--text2);
+}
+.tab-btn.active .tab-badge { background: var(--blue); color: #fff; }
+
+/* ── Tab content ── */
+.tab-content { flex: 1; overflow-y: auto; padding: 8px 24px 16px; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ── Explorer ── */
+.explorer { display: flex; flex-direction: column; gap: 1px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.explorer-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+  transition: background .12s; cursor: pointer; background: var(--surface);
+}
+.explorer-item:hover { background: var(--bg3); }
+.explorer-item .ex-icon { font-size: 18px; flex-shrink: 0; }
+.explorer-item .ex-info { flex: 1; min-width: 0; }
+.explorer-item .ex-name { font-size: 13px; font-weight: 400; letter-spacing: -.1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.explorer-item .ex-bar-bg { height: 3px; background: var(--bg3); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.explorer-item .ex-bar { height: 100%; border-radius: 2px; transition: width .4s ease; }
+.explorer-item .ex-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.explorer-item .ex-size { font-size: 12px; font-weight: 500; color: var(--text2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.explorer-item .ex-pct { font-size: 10px; color: var(--text3); width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
+.explorer-item .ex-arrow { color: var(--text3); font-size: 10px; }
+.explorer-back {
+  display: inline-flex; align-items: center; gap: 3px; font-size: 13px;
+  color: var(--blue); cursor: pointer; padding: 4px 0; border: none; background: none;
+}
+.explorer-back:hover { text-decoration: underline; }
+.explorer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.explorer-path { font-size: 12px; color: var(--text2); font-family: 'SF Mono', 'Menlo', monospace; }
+
+/* ── File lists ── */
+.file-list { list-style: none; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.file-item {
+  display: flex; align-items: center; padding: 8px 14px; gap: 10px;
+  transition: background .12s; cursor: default;
+  border-bottom: .5px solid var(--border);
+}
+.file-item:last-child { border-bottom: none; }
+.file-item:hover { background: var(--bg3); }
+.file-item .fi-icon { font-size: 18px; flex-shrink: 0; }
+.file-item .fi-info { flex: 1; min-width: 0; }
+.file-item .fi-name { font-size: 13px; font-weight: 400; letter-spacing: -.1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-item .fi-path { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-item .fi-size { font-size: 12px; font-weight: 500; color: var(--text2); flex-shrink: 0; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.file-item .fi-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.btn-sm {
+  padding: 4px 10px; border: none; border-radius: 980px; font-size: 11px;
+  cursor: pointer; font-weight: 500; transition: all .12s; letter-spacing: -.1px;
+}
+.btn-reveal { background: var(--bg3); color: var(--text2); }
+.btn-reveal:hover { background: var(--bg3); color: var(--text); }
+.btn-delete { background: rgba(255,59,48,.08); color: var(--red); }
+.btn-delete:hover { background: var(--red); color: #fff; }
+
+/* ── Categories ── */
+.cat-bar-container { display: flex; flex-direction: column; gap: 1px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.cat-group { background: var(--surface); }
+.cat-group.open { background: var(--bg3); }
+.cat-row {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 8px 14px; transition: background .12s;
+}
+.cat-row:hover { background: var(--bg3); }
+.cat-chevron { font-size: 10px; color: var(--text3); width: 12px; text-align: center; transition: transform .2s; flex-shrink: 0; }
+.cat-group.open .cat-chevron { transform: rotate(90deg); }
+.cat-label { width: 72px; font-size: 12px; font-weight: 500; text-align: right; flex-shrink: 0; letter-spacing: -.1px; }
+.cat-bar-bg { flex: 1; height: 20px; background: var(--bg3); border-radius: 5px; overflow: hidden; }
+.cat-bar {
+  height: 100%; border-radius: 5px; transition: width .6s ease;
+  display: flex; align-items: center; padding-left: 8px;
+  font-size: 10px; font-weight: 600; color: #fff; min-width: fit-content;
+}
+.cat-count { font-size: 11px; color: var(--text2); width: 80px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.cat-files { display: none; padding: 0 8px 8px; max-height: 50vh; overflow-y: auto; }
+.cat-group.open .cat-files { display: block; }
+.cat-files .file-list { box-shadow: none; }
+.cat-no-files { font-size: 12px; color: var(--text2); padding: 12px; }
+.cat-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 14px; border-bottom: .5px solid var(--border);
+}
+.cat-toolbar-left { display: flex; align-items: center; gap: 8px; }
+.cat-toolbar label { font-size: 11px; color: var(--text2); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.cat-selected-info { font-size: 11px; color: var(--blue); font-weight: 500; }
+.btn-delete-selected {
+  padding: 5px 12px; border: none; border-radius: 980px; font-size: 11px;
+  cursor: pointer; font-weight: 500; background: rgba(255,59,48,.08); color: var(--red);
+  transition: all .15s; opacity: .4; pointer-events: none;
+}
+.btn-delete-selected.active { opacity: 1; pointer-events: auto; }
+.btn-delete-selected.active:hover { background: var(--red); color: #fff; }
+.file-check { width: 15px; height: 15px; border-radius: 4px; flex-shrink: 0; accent-color: var(--blue); cursor: pointer; }
+
+/* ── VMs ── */
+.vm-item {
+  display: flex; align-items: center; padding: 12px 16px; gap: 12px;
+  background: var(--surface); border-radius: var(--radius); margin-bottom: 8px;
+  box-shadow: var(--shadow);
+  border-left: 3px solid var(--orange);
+}
+.vm-item.vm-active { border-left-color: var(--green); }
+.vm-item.vm-inactive { border-left-color: var(--yellow); }
+.vm-item.vm-abandoned { border-left-color: var(--red); }
+.vm-item .vm-icon { font-size: 24px; }
+.vm-item .vm-info { flex: 1; }
+.vm-item .vm-name { font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 8px; letter-spacing: -.1px; }
+.vm-item .vm-path { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.vm-item .vm-size { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
+.vm-item .vm-date { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.vm-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 980px; }
+.vm-badge.active { background: rgba(52,199,89,.12); color: var(--green); }
+.vm-badge.inactive { background: rgba(255,159,10,.12); color: var(--yellow); }
+.vm-badge.abandoned { background: rgba(255,59,48,.1); color: var(--red); }
+
+/* ── Apps ── */
+.app-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 980px; flex-shrink: 0; }
+.app-badge.active { background: rgba(52,199,89,.12); color: var(--green); }
+.app-badge.inactive { background: rgba(255,159,10,.12); color: var(--yellow); }
+.app-badge.abandoned { background: rgba(255,59,48,.1); color: var(--red); }
+.app-date { font-size: 11px; color: var(--text2); }
+.app-stats { display: flex; gap: 8px; margin-bottom: 10px; }
+.app-stat-box { background: var(--surface); border-radius: var(--radius); padding: 8px 14px; text-align: center; box-shadow: var(--shadow); }
+.app-stat-box .asv { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+.app-stat-box .asl { font-size: 10px; color: var(--text2); margin-top: 2px; }
+
+/* ── Filter bar ── */
+.filter-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.filter-bar select, .filter-bar input {
+  background: var(--surface); color: var(--text); border: .5px solid var(--topbar-border);
+  padding: 7px 10px; border-radius: 8px; font-size: 12px; box-shadow: var(--shadow);
+}
+.filter-bar select:focus, .filter-bar input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,122,255,.15); }
+.filter-bar input { flex: 1; }
+.filter-bar input::placeholder { color: var(--text3); }
+
+/* ── Loading ── */
+.loading-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--bg); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; z-index: 100;
+}
+.loading-logo {
+  font-size: 40px; font-weight: 700; margin-bottom: 8px; letter-spacing: -.8px;
+  color: var(--text);
+}
+.loading-subtitle { font-size: 15px; color: var(--text2); margin-bottom: 48px; }
+.progress-container { width: 400px; margin-bottom: 20px; }
+.progress-bar-bg { width: 100%; height: 6px; background: var(--progress-track); border-radius: 3px; overflow: hidden; }
+.progress-bar-fill { height: 100%; border-radius: 3px; transition: width .4s ease; background: var(--blue); }
+.progress-info { display: flex; justify-content: space-between; margin-top: 12px; }
+.loading-text { font-size: 15px; color: var(--text2); }
+.loading-pct { font-size: 15px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.loading-steps { display: flex; flex-direction: column; gap: 14px; margin-top: 36px; width: 400px; }
+.loading-step { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--text3); transition: all .3s; }
+.loading-step.done { color: var(--blue); }
+.loading-step.active { color: var(--text); font-weight: 500; }
+.loading-step .step-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--progress-track); transition: all .3s; }
+.loading-step.done .step-dot { background: var(--blue); }
+.loading-step .step-check { display: none; font-size: 14px; flex-shrink: 0; }
+.loading-step.done .step-dot { display: none; }
+.loading-step.done .step-check { display: inline; color: var(--blue); }
+.loading-step.active .step-dot { background: var(--blue); animation: pulse-dot 1.2s ease infinite; }
+@keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+/* ── Empty state ── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100vh; text-align: center; background: var(--bg);
+  position: relative;
+}
+.empty-state .big-icon { font-size: 72px; margin-bottom: 16px; }
+.empty-state p { color: var(--text2); margin-bottom: 28px; }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--modal-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  display: flex; align-items: center; justify-content: center; z-index: 150;
+}
+.modal {
+  background: var(--surface); border-radius: var(--radius-lg); padding: 24px;
+  max-width: 420px; width: 90%; box-shadow: var(--shadow-xl);
+}
+.modal h3 { font-size: 16px; margin-bottom: 8px; font-weight: 600; letter-spacing: -.2px; }
+.modal p { font-size: 13px; color: var(--text2); margin-bottom: 4px; }
+.modal .path-display { font-size: 11px; color: var(--blue); word-break: break-all; margin-bottom: 14px; font-family: 'SF Mono', 'Menlo', monospace; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-actions button { padding: 8px 16px; border: none; border-radius: 980px; font-size: 13px; cursor: pointer; font-weight: 500; transition: all .15s; }
+.btn-cancel { background: var(--bg3); color: var(--text2); }
+.btn-cancel:hover { background: var(--bg3); }
+.btn-trash { background: rgba(255,149,0,.12); color: var(--orange); }
+.btn-trash:hover { background: var(--orange); color: #fff; }
+.btn-perm { background: rgba(255,59,48,.1); color: var(--red); }
+.btn-perm:hover { background: var(--red); color: #fff; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--surface); color: var(--text); padding: 12px 20px;
+  border-radius: var(--radius); font-weight: 500; font-size: 13px;
+  z-index: 200; animation: slideUp .3s ease;
+  box-shadow: var(--shadow-xl); letter-spacing: -.1px;
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } }
+
+/* ── Scrollbar ── */
+.tab-content::-webkit-scrollbar { width: 6px; }
+.tab-content::-webkit-scrollbar-track { background: transparent; }
+.tab-content::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 3px; }
+.tab-content::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
+</style>
+</head>
+<body>
+
+<div id="empty-state" class="empty-state">
+  <button class="theme-toggle" onclick="toggleTheme()" style="position:absolute;top:16px;right:16px;" title="Cambiar tema">🌙</button>
+  <div class="big-icon">💽</div>
+  <h1 style="font-size:34px;font-weight:700;letter-spacing:-.5px;color:var(--text);margin-bottom:4px;">DiskDuran</h1>
+  <p style="font-size:15px;">Descubre qué se está comiendo tu disco</p>
+  <div class="disk-select-wrap" id="empty-disk-wrap" style="display:none;">
+    <label>Disco:</label>
+    <select class="disk-selector" id="empty-disk-select"></select>
+  </div>
+  <button class="scan-btn" style="padding:10px 24px;font-size:15px;margin-top:16px;" onclick="startScan()">Escanear disco</button>
+</div>
+
+<div id="loading" class="loading-overlay" style="display:none;">
+  <div class="loading-logo">DiskDuran</div>
+  <div class="loading-subtitle">Analizando tu disco...</div>
+  <div class="progress-container">
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="progress-info">
+      <span class="loading-text" id="loading-text">Iniciando escaneo...</span>
+      <span class="loading-pct" id="loading-pct">0%</span>
+    </div>
+  </div>
+  <div class="loading-steps" id="loading-steps">
+    <div class="loading-step" data-step="disk"><span class="step-check">✓</span><span class="step-dot"></span> Información del disco</div>
+    <div class="loading-step" data-step="folders"><span class="step-check">✓</span><span class="step-dot"></span> Carpetas principales</div>
+    <div class="loading-step" data-step="junk"><span class="step-check">✓</span><span class="step-dot"></span> Basura recuperable</div>
+    <div class="loading-step" data-step="vms"><span class="step-check">✓</span><span class="step-dot"></span> Máquinas virtuales</div>
+    <div class="loading-step" data-step="types"><span class="step-check">✓</span><span class="step-dot"></span> Tipos de archivo</div>
+    <div class="loading-step" data-step="apps"><span class="step-check">✓</span><span class="step-dot"></span> Aplicaciones instaladas</div>
+    <div class="loading-step" data-step="largest"><span class="step-check">✓</span><span class="step-dot"></span> Archivos más grandes</div>
+  </div>
+</div>
+
+<div id="dashboard" class="dash" style="display:none;">
+  <div class="topbar">
+    <div>
+      <h1>DiskDuran</h1>
+      <div class="subtitle" id="scan-time"></div>
+    </div>
+    <div class="topbar-right">
+      <select class="disk-selector" id="topbar-disk-select" onchange="switchDisk(this.value)"></select>
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">☀️</button>
+      <button class="scan-btn" onclick="startScan()">Re-escanear</button>
+    </div>
+  </div>
+
+  <div class="summary-strip">
+    <div class="ss-item">
+      <div class="ss-ring">
+        <svg width="40" height="40" viewBox="0 0 40 40">
+          <circle cx="20" cy="20" r="16" fill="none" stroke="var(--ring-track)" stroke-width="3.5"/>
+          <circle id="disk-arc" cx="20" cy="20" r="16" fill="none" stroke="var(--green)" stroke-width="3.5"
+                  stroke-linecap="round" stroke-dasharray="100.5" stroke-dashoffset="100.5"/>
+        </svg>
+        <span class="ss-pct" id="disk-percent">0</span>
+      </div>
+      <div class="ss-info">
+        <div class="ss-value" id="disk-used">-</div>
+        <div class="ss-label">Usado de <span id="disk-total">-</span></div>
+      </div>
+    </div>
+    <div class="ss-item ss-green">
+      <div class="ss-info">
+        <div class="ss-value" id="sc-free">-</div>
+        <div class="ss-label">Espacio libre</div>
+      </div>
+    </div>
+    <div class="ss-item ss-orange">
+      <div class="ss-info">
+        <div class="ss-value" id="sc-recoverable">-</div>
+        <div class="ss-label">Basura recuperable</div>
+      </div>
+    </div>
+    <div class="ss-item ss-red">
+      <div class="ss-info">
+        <div class="ss-value" id="sc-vms">-</div>
+        <div class="ss-label">Máquinas virtuales</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab-bar-inner">
+      <button class="tab-btn active" onclick="switchTab('explorer',this)">Explorador</button>
+      <button class="tab-btn" onclick="switchTab('categories',this)">Tipos <span class="tab-badge" id="badge-cats"></span></button>
+      <button class="tab-btn" onclick="switchTab('junk',this)">Basura <span class="tab-badge" id="badge-junk"></span></button>
+      <button class="tab-btn" onclick="switchTab('vms',this)">VMs <span class="tab-badge" id="badge-vms"></span></button>
+      <button class="tab-btn" onclick="switchTab('apps',this)">Apps <span class="tab-badge" id="badge-apps"></span></button>
+      <button class="tab-btn" onclick="switchTab('largest',this)">Más grandes</button>
+    </div>
+  </div>
+
+  <div class="tab-content">
+    <div class="tab-pane active" id="pane-explorer">
+      <div class="explorer-header">
+        <button class="explorer-back" id="explorer-back" style="display:none;" onclick="explorerGoBack()">‹ Volver</button>
+        <span class="explorer-path" id="explorer-path">~</span>
+      </div>
+      <div class="explorer" id="explorer"></div>
+    </div>
+    <div class="tab-pane" id="pane-categories">
+      <div class="cat-bar-container" id="categories"></div>
+    </div>
+    <div class="tab-pane" id="pane-junk">
+      <ul class="file-list" id="junk-list"></ul>
+    </div>
+    <div class="tab-pane" id="pane-vms">
+      <div id="vm-list"></div>
+    </div>
+    <div class="tab-pane" id="pane-apps">
+      <div class="filter-bar">
+        <select id="app-filter" onchange="renderApps()">
+          <option value="all">Todas</option>
+          <option value="abandoned">Abandonadas (+6 meses)</option>
+          <option value="inactive">Inactivas (+2 meses)</option>
+          <option value="active">En uso</option>
+        </select>
+        <select id="app-sort" onchange="renderApps()">
+          <option value="size">Mayor tamaño</option>
+          <option value="inactive">Menos usadas</option>
+          <option value="name">Nombre</option>
+        </select>
+        <input type="text" id="app-search" placeholder="Buscar app..." oninput="renderApps()">
+      </div>
+      <div class="app-stats" id="app-stats"></div>
+      <div class="cat-toolbar" id="app-toolbar" style="display:none;">
+        <div class="cat-toolbar-left">
+          <label><input type="checkbox" class="file-check" onchange="toggleSelectAllApps(this.checked)"> Seleccionar todo</label>
+          <span class="cat-selected-info" id="app-sel-info"></span>
+        </div>
+        <button class="btn-delete-selected" id="app-del-btn" onclick="deleteSelectedApps()">Eliminar seleccionados</button>
+      </div>
+      <ul class="file-list" id="app-list"></ul>
+    </div>
+    <div class="tab-pane" id="pane-largest">
+      <div class="filter-bar">
+        <select id="size-filter" onchange="renderLargest()">
+          <option value="0">Todos</option>
+          <option value="104857600">&gt; 100 MB</option>
+          <option value="524288000">&gt; 500 MB</option>
+          <option value="1073741824">&gt; 1 GB</option>
+        </select>
+        <input type="text" id="name-filter" placeholder="Filtrar por nombre..." oninput="renderLargest()">
+      </div>
+      <ul class="file-list" id="largest-list"></ul>
+    </div>
+  </div>
+</div>
+
+<div id="delete-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3>Confirmar eliminación</h3>
+    <p id="modal-name"></p>
+    <p><strong id="modal-size"></strong></p>
+    <div class="path-display" id="modal-path"></div>
+    <p id="modal-admin-hint" style="font-size:12px;color:var(--orange);margin-bottom:10px;display:none;">Se puede requerir contraseña de administrador</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-trash" onclick="doDelete(false)">Papelera</button>
+      <button class="btn-perm" onclick="doDelete(true)">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" style="display:none;"></div>
+
+<script>
+let data = null;
+let deletePath = '';
+let deleteName = '';
+
+const COLORS = [
+  '#007AFF','#34C759','#FF3B30','#5AC8FA','#FF9F0A',
+  '#5856D6','#30D158','#FF9500','#64D2FF','#BF5AF2',
+  '#FF2D55','#AC8E68','#FFD60A','#FF6482','#00C7BE',
+];
+const CAT_COLORS = {
+  'Video':'#FF3B30','Audio':'#FF9F0A','Imágenes':'#34C759',
+  'Documentos':'#007AFF','Comprimidos':'#5856D6','VMs':'#FF9500',
+  'Código':'#5AC8FA','Datos':'#00C7BE','Otros':'#8E8E93',
+};
+
+function fmt(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024, sizes = ['B','KB','MB','GB','TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+function shortPath(p) { return p.replace(data.home, '~'); }
+function getFileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const map = {
+    mp4:'🎬',mkv:'🎬',avi:'🎬',mov:'🎬',webm:'🎬',mp3:'🎵',wav:'🎵',flac:'🎵',m4a:'🎵',
+    jpg:'🖼️',jpeg:'🖼️',png:'🖼️',gif:'🖼️',svg:'🖼️',heic:'🖼️',pdf:'📄',doc:'📄',docx:'📄',
+    xls:'📊',xlsx:'📊',zip:'📦',rar:'📦',dmg:'📦',pkg:'📦',iso:'💿',
+    vmdk:'🖥️',qcow2:'🖥️',utm:'🖥️',vmwarevm:'🖥️',py:'🐍',js:'⚡',ts:'⚡',go:'🔵',rs:'🦀',
+    db:'🗃️',sqlite:'🗃️',sql:'🗃️',
+  };
+  return map[ext] || '📄';
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('pane-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+let selectedDisk = null;
+let availableDisks = [];
+
+async function loadDisks() {
+  try {
+    const res = await fetch('/api/disks');
+    const r = await res.json();
+    availableDisks = r.disks || [];
+    if (!selectedDisk && availableDisks.length) selectedDisk = availableDisks[0].mountpoint;
+    populateDiskSelects();
+  } catch(e) {}
+}
+
+function populateDiskSelects() {
+  const selects = ['empty-disk-select', 'topbar-disk-select'];
+  selects.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = '';
+    availableDisks.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.mountpoint;
+      const sizeGB = (d.total / 1073741824).toFixed(0);
+      opt.textContent = `${d.name} (${sizeGB} GB)`;
+      if (d.mountpoint === selectedDisk) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  });
+  const wrap = document.getElementById('empty-disk-wrap');
+  if (wrap) wrap.style.display = availableDisks.length > 1 ? 'flex' : 'none';
+}
+
+function switchDisk(mountpoint) {
+  selectedDisk = mountpoint;
+  populateDiskSelects();
+  startScan();
+}
+
+async function startScan() {
+  const diskSel = document.getElementById('empty-disk-select');
+  if (diskSel && diskSel.value) selectedDisk = diskSel.value;
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('dashboard').style.display = 'none';
+  const params = selectedDisk ? `?disk=${encodeURIComponent(selectedDisk)}` : '';
+  await fetch('/api/scan' + params);
+  pollStatus();
+}
+
+const STEP_MAP = {
+  'Obteniendo info del disco': 'disk', 'Escaneando carpetas principales': 'folders',
+  'Buscando basura recuperable': 'junk', 'Detectando máquinas virtuales': 'vms',
+  'Categorizando archivos': 'types', 'Analizando aplicaciones instaladas': 'apps',
+  'Buscando archivos más grandes': 'largest',
+};
+const STEP_ORDER = ['disk','folders','junk','vms','types','apps','largest'];
+
+function updateLoadingUI(progress, pct) {
+  document.getElementById('loading-text').textContent = progress || 'Escaneando...';
+  document.getElementById('loading-pct').textContent = pct + '%';
+  document.getElementById('progress-fill').style.width = pct + '%';
+  let activeKey = null;
+  for (const [prefix, key] of Object.entries(STEP_MAP)) {
+    if (progress && progress.startsWith(prefix)) { activeKey = key; break; }
+  }
+  const steps = document.querySelectorAll('.loading-step');
+  let passedActive = false;
+  STEP_ORDER.forEach((key, i) => {
+    const el = steps[i]; if (!el) return;
+    el.classList.remove('done', 'active');
+    if (key === activeKey) { el.classList.add('active'); passedActive = true; }
+    else if (!passedActive && activeKey) { el.classList.add('done'); }
+  });
+}
+
+async function pollStatus() {
+  const res = await fetch('/api/status');
+  const s = await res.json();
+  if (s.status === 'scanning') { updateLoadingUI(s.progress, s.pct || 0); setTimeout(pollStatus, 500); }
+  else if (s.status === 'ready') { updateLoadingUI('Completado', 100); setTimeout(loadResults, 300); }
+}
+
+async function loadResults() {
+  const res = await fetch('/api/results');
+  const r = await res.json();
+  if (r.status === 'ready') {
+    data = r.data;
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'flex';
+    renderDashboard();
+  }
+}
+
+function renderDashboard() {
+  if (data.disks && data.disks.length) {
+    availableDisks = data.disks;
+    if (data.disk && data.disk.mountpoint) selectedDisk = data.disk.mountpoint;
+    populateDiskSelects();
+  }
+  document.getElementById('scan-time').textContent = 'Escaneado: ' + data.scan_time;
+  const pct = data.disk.percent;
+  const circumference = 2 * Math.PI * 16;
+  const offset = circumference - (circumference * pct / 100);
+  const arc = document.getElementById('disk-arc');
+  arc.style.strokeDasharray = circumference;
+  arc.style.strokeDashoffset = offset;
+  arc.style.stroke = pct > 90 ? 'var(--red)' : pct > 75 ? 'var(--yellow)' : 'var(--green)';
+  document.getElementById('disk-percent').textContent = Math.round(pct) + '%';
+  document.getElementById('disk-used').textContent = fmt(data.disk.used);
+  document.getElementById('disk-total').textContent = fmt(data.disk.total);
+  document.getElementById('sc-free').textContent = fmt(data.disk.free);
+  document.getElementById('sc-recoverable').textContent = fmt(data.recoverable);
+  document.getElementById('sc-vms').textContent = fmt(data.vm_space);
+  document.getElementById('badge-cats').textContent = Object.keys(data.categories).length;
+  document.getElementById('badge-junk').textContent = data.junk.length;
+  document.getElementById('badge-vms').textContent = data.vms.length;
+  document.getElementById('badge-apps').textContent = (data.apps || []).length;
+  explorerHistory = [];
+  renderExplorer(data.tree, null);
+  renderCategories(); renderJunk(); renderVMs(); renderApps(); renderLargest();
+}
+
+let explorerHistory = [];
+function renderExplorer(items, currentPath) {
+  const container = document.getElementById('explorer');
+  const pathEl = document.getElementById('explorer-path');
+  const backBtn = document.getElementById('explorer-back');
+  pathEl.textContent = currentPath ? shortPath(currentPath) : '~';
+  backBtn.style.display = explorerHistory.length > 0 ? 'inline-flex' : 'none';
+  const total = items.reduce((s, i) => s + i.size, 0);
+  if (total === 0) { container.innerHTML = '<div style="color:var(--text2);padding:20px;">Carpeta vacía</div>'; return; }
+  container.innerHTML = items.filter(i => i.size > 0).slice(0, 25).map((item, idx) => {
+    const pct = (item.size / total * 100), color = COLORS[idx % COLORS.length];
+    const isDir = item.type === 'dir', icon = isDir ? '📁' : getFileIcon(item.name);
+    const epath = item.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const ename = item.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const navClick = isDir ? `onclick="explorerNavigate('${epath}')"` : '';
+    return `<div class="explorer-item" ${navClick} style="${isDir?'':'cursor:default;'}">
+      <span class="ex-icon">${icon}</span>
+      <div class="ex-info"><div class="ex-name">${item.name}</div>
+        <div class="ex-bar-bg"><div class="ex-bar" style="width:${Math.max(pct,1)}%;background:${color};"></div></div></div>
+      <div class="ex-right"><span class="ex-size">${fmt(item.size)}</span><span class="ex-pct">${pct.toFixed(1)}%</span>
+        <div class="fi-actions" style="margin-left:4px;">
+          <button class="btn-sm btn-reveal" onclick="event.stopPropagation();reveal('${epath}')">Mostrar</button>
+          <button class="btn-sm btn-delete" onclick="event.stopPropagation();confirmDelete('${epath}','${ename}',${item.size})">Eliminar</button>
+        </div>
+        ${isDir?'<span class="ex-arrow">›</span>':''}</div></div>`;
+  }).join('');
+}
+async function explorerNavigate(path) {
+  explorerHistory.push(document.getElementById('explorer').innerHTML + '|||' + document.getElementById('explorer-path').textContent);
+  const res = await fetch('/api/browse?path=' + encodeURIComponent(path));
+  renderExplorer((await res.json()).items, path);
+}
+function explorerGoBack() {
+  if (!explorerHistory.length) return;
+  const [html, pathText] = explorerHistory.pop().split('|||');
+  document.getElementById('explorer').innerHTML = html;
+  document.getElementById('explorer-path').textContent = pathText;
+  document.getElementById('explorer-back').style.display = explorerHistory.length > 0 ? 'inline-flex' : 'none';
+}
+
+function renderCategories() {
+  const container = document.getElementById('categories');
+  const cats = Object.entries(data.categories).sort((a, b) => b[1].size - a[1].size);
+  const maxSize = cats.length ? cats[0][1].size : 1;
+  container.innerHTML = cats.map(([name, info]) => {
+    const pct = (info.size / maxSize * 100), color = CAT_COLORS[name] || '#8E8E93';
+    const safeName = name.replace(/[^a-zA-Z0-9]/g, '_');
+    const files = (info.files || []).sort((a, b) => b.size - a.size);
+    const fileListHtml = files.length ? files.map(f => {
+      const ep = f.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'"), en = f.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return `<li class="file-item">
+        <input type="checkbox" class="file-check" data-cat="${safeName}" data-path="${f.path}" data-size="${f.size}" data-name="${f.name}" onchange="updateCatSelection('${safeName}')">
+        <span class="fi-icon">${getFileIcon(f.name)}</span>
+        <div class="fi-info"><div class="fi-name">${f.name}</div><div class="fi-path">${shortPath(f.path)}</div></div>
+        <span class="fi-size">${fmt(f.size)}</span>
+        <div class="fi-actions">
+          <button class="btn-sm btn-reveal" onclick="event.stopPropagation();reveal('${ep}')">Mostrar</button>
+          <button class="btn-sm btn-delete" onclick="event.stopPropagation();confirmDelete('${ep}','${en}',${f.size})">Eliminar</button>
+        </div></li>`;
+    }).join('') : '<div class="cat-no-files">Sin archivos grandes</div>';
+    const toolbar = files.length ? `<div class="cat-toolbar"><div class="cat-toolbar-left">
+      <label><input type="checkbox" class="file-check" onchange="toggleSelectAll('${safeName}',this.checked)"> Todo</label>
+      <span class="cat-selected-info" id="cat-info-${safeName}"></span></div>
+      <button class="btn-delete-selected" id="cat-delbtn-${safeName}" onclick="deleteSelected('${safeName}')">Eliminar seleccionados</button></div>` : '';
+    return `<div class="cat-group" id="cat-${safeName}">
+      <div class="cat-row" onclick="toggleCategory('cat-${safeName}')"><span class="cat-chevron">›</span>
+        <div class="cat-label">${name}</div>
+        <div class="cat-bar-bg"><div class="cat-bar" style="width:${Math.max(pct,2)}%;background:${color};">${fmt(info.size)}</div></div>
+        <div class="cat-count">${info.count.toLocaleString()} archivos</div></div>
+      <div class="cat-files">${toolbar}<ul class="file-list">${fileListHtml}</ul></div></div>`;
+  }).join('');
+}
+function toggleCategory(id) { document.getElementById(id).classList.toggle('open'); }
+function toggleSelectAll(cat, checked) { document.querySelectorAll(`input.file-check[data-cat="${cat}"]`).forEach(cb => cb.checked = checked); updateCatSelection(cat); }
+function updateCatSelection(cat) {
+  const checks = document.querySelectorAll(`input.file-check[data-cat="${cat}"]:checked`);
+  const totalSize = Array.from(checks).reduce((s, cb) => s + parseInt(cb.dataset.size), 0);
+  const info = document.getElementById(`cat-info-${cat}`), btn = document.getElementById(`cat-delbtn-${cat}`);
+  if (checks.length > 0) { info.textContent = `${checks.length} sel. — ${fmt(totalSize)}`; btn.classList.add('active'); }
+  else { info.textContent = ''; btn.classList.remove('active'); }
+}
+async function deleteSelected(cat) {
+  const checks = Array.from(document.querySelectorAll(`input.file-check[data-cat="${cat}"]:checked`));
+  if (!checks.length) return;
+  const totalSize = checks.reduce((s, cb) => s + parseInt(cb.dataset.size), 0);
+  document.getElementById('modal-name').textContent = `Eliminar ${checks.length} archivos`;
+  document.getElementById('modal-size').textContent = fmt(totalSize);
+  document.getElementById('modal-path').textContent = checks.map(cb => cb.dataset.name).join(', ');
+  document.getElementById('modal-admin-hint').style.display = checks.some(cb => cb.dataset.path.includes('/Library/')) ? 'block' : 'none';
+  document.getElementById('delete-modal').style.display = 'flex';
+  window._batchDelete = checks.map(cb => cb.dataset.path);
+  document.querySelector('.btn-trash').onclick = () => doBatchDelete(false);
+  document.querySelector('.btn-perm').onclick = () => doBatchDelete(true);
+}
+async function doBatchDelete(permanent) {
+  closeModal(); const paths = window._batchDelete || []; let totalFreed = 0, errors = 0;
+  for (const path of paths) {
+    try { const r = await (await fetch(`/api/delete?path=${encodeURIComponent(path)}&permanent=${permanent}`, {method:'POST'})).json();
+      if (r.status === 'ok') totalFreed += r.freed; else errors++; } catch(e) { errors++; }
+  }
+  showToast(errors ? `${fmt(totalFreed)} liberados (${errors} errores)` : `${paths.length} eliminados — ${fmt(totalFreed)} liberados`);
+  window._batchDelete = null; document.querySelector('.btn-trash').onclick = () => doDelete(false);
+  document.querySelector('.btn-perm').onclick = () => doDelete(true); startScan();
+}
+
+function renderJunk() {
+  const list = document.getElementById('junk-list');
+  list.innerHTML = data.junk.map(j => `<li class="file-item"><span class="fi-icon">🗑️</span>
+    <div class="fi-info"><div class="fi-name">${j.name}</div><div class="fi-path">${j.desc} — ${shortPath(j.path)}</div></div>
+    <span class="fi-size">${fmt(j.size)}</span><div class="fi-actions">
+      <button class="btn-sm btn-reveal" onclick="reveal('${j.path}')">Mostrar</button>
+      <button class="btn-sm btn-delete" onclick="confirmDelete('${j.path}','${j.name}',${j.size})">Eliminar</button></div></li>`).join('');
+  if (!data.junk.length) list.innerHTML = '<div style="color:var(--text2);padding:16px;">Sin basura detectada</div>';
+}
+
+function renderVMs() {
+  const list = document.getElementById('vm-list');
+  if (!data.vms.length) { list.innerHTML = '<div style="color:var(--text2);padding:16px;">Sin VMs detectadas</div>'; return; }
+  const labels = {active:'En uso',inactive:'Inactiva',abandoned:'Abandonada'};
+  list.innerHTML = data.vms.map(vm => {
+    const st = vm.status||'active', days = vm.days_inactive||0;
+    let dt = days===0?'Usada hoy':days===1?'Usada ayer':days<30?`Hace ${days} días`:days<365?`Hace ${Math.floor(days/30)} meses`:`Hace ${Math.floor(days/365)} año(s)`;
+    const ep = vm.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'"), en = vm.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<div class="vm-item vm-${st}"><span class="vm-icon">🖥️</span>
+      <div class="vm-info"><div class="vm-name">${vm.name} <span class="vm-badge ${st}">${labels[st]}</span></div>
+        <div class="vm-path">${shortPath(vm.path)}</div><div class="vm-date">${dt} — ${vm.last_used_str||''}</div></div>
+      <span class="vm-size">${fmt(vm.size)}</span>
+      <div class="fi-actions" style="margin-left:8px;"><button class="btn-sm btn-reveal" onclick="reveal('${ep}')">Mostrar</button>
+        ${st!=='active'?`<button class="btn-sm btn-delete" onclick="confirmDelete('${ep}','${en}',${vm.size})">Eliminar</button>`:''}</div></div>`;
+  }).join('');
+}
+
+function renderApps() {
+  const apps = data.apps || [], filter = document.getElementById('app-filter').value;
+  const sort = document.getElementById('app-sort').value, search = document.getElementById('app-search').value.toLowerCase();
+  let items = apps;
+  if (filter !== 'all') items = items.filter(a => a.status === filter);
+  if (search) items = items.filter(a => a.name.toLowerCase().includes(search));
+  if (sort === 'size') items.sort((a, b) => b.size - a.size);
+  else if (sort === 'inactive') items.sort((a, b) => b.days_inactive - a.days_inactive);
+  else items.sort((a, b) => a.name.localeCompare(b.name));
+  const act = apps.filter(a=>a.status==='active').length, inact = apps.filter(a=>a.status==='inactive').length;
+  const aband = apps.filter(a=>a.status==='abandoned').length, abandSz = apps.filter(a=>a.status==='abandoned').reduce((s,a)=>s+a.size,0);
+  document.getElementById('app-stats').innerHTML = `
+    <div class="app-stat-box"><div class="asv">${apps.length}</div><div class="asl">Total</div></div>
+    <div class="app-stat-box"><div class="asv" style="color:var(--green)">${act}</div><div class="asl">En uso</div></div>
+    <div class="app-stat-box"><div class="asv" style="color:var(--yellow)">${inact}</div><div class="asl">Inactivas</div></div>
+    <div class="app-stat-box"><div class="asv" style="color:var(--red)">${aband}</div><div class="asl">Abandonadas</div></div>
+    <div class="app-stat-box"><div class="asv" style="color:var(--red)">${fmt(abandSz)}</div><div class="asl">Recuperable</div></div>`;
+  const labels = {active:'En uso',inactive:'Inactiva',abandoned:'Abandonada'};
+  const hasNonActive = items.some(a => a.status !== 'active');
+  document.getElementById('app-toolbar').style.display = hasNonActive ? 'flex' : 'none';
+  document.getElementById('app-list').innerHTML = items.slice(0,40).map(app => {
+    const ep = app.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'"), en = app.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    let dt = app.days_inactive>=9999?'Nunca':app.days_inactive===0?'Hoy':app.days_inactive===1?'Ayer':app.days_inactive<30?`${app.days_inactive}d`:app.days_inactive<365?`${Math.floor(app.days_inactive/30)}m`:`${Math.floor(app.days_inactive/365)}a`;
+    const chk = app.status !== 'active' ? `<input type="checkbox" class="file-check app-check" data-path="${app.path}" data-size="${app.size}" data-name="${app.name}" onchange="updateAppSelection()">` : '<span style="width:15px;display:inline-block;"></span>';
+    return `<li class="file-item">${chk}<span class="fi-icon">🧩</span>
+      <div class="fi-info"><div class="fi-name">${app.name}</div><div class="app-date">Último uso: ${dt} — ${app.last_used_str}</div></div>
+      <span class="app-badge ${app.status}">${labels[app.status]}</span>
+      <span class="fi-size">${fmt(app.size)}</span>
+      <div class="fi-actions"><button class="btn-sm btn-reveal" onclick="reveal('${ep}')">Mostrar</button>
+        ${app.status!=='active'?`<button class="btn-sm btn-delete" onclick="confirmDelete('${ep}','${en}',${app.size})">Eliminar</button>`:''}</div></li>`;
+  }).join('') || '<div style="color:var(--text2);padding:16px;">Sin resultados</div>';
+  updateAppSelection();
+}
+function toggleSelectAllApps(checked) { document.querySelectorAll('input.app-check').forEach(cb => cb.checked = checked); updateAppSelection(); }
+function updateAppSelection() {
+  const checks = document.querySelectorAll('input.app-check:checked');
+  const totalSize = Array.from(checks).reduce((s, cb) => s + parseInt(cb.dataset.size), 0);
+  const info = document.getElementById('app-sel-info'), btn = document.getElementById('app-del-btn');
+  if (checks.length > 0) { info.textContent = `${checks.length} sel. — ${fmt(totalSize)}`; btn.classList.add('active'); }
+  else { info.textContent = ''; btn.classList.remove('active'); }
+}
+async function deleteSelectedApps() {
+  const checks = Array.from(document.querySelectorAll('input.app-check:checked'));
+  if (!checks.length) return;
+  const totalSize = checks.reduce((s, cb) => s + parseInt(cb.dataset.size), 0);
+  document.getElementById('modal-name').textContent = `Eliminar ${checks.length} aplicaciones`;
+  document.getElementById('modal-size').textContent = fmt(totalSize);
+  document.getElementById('modal-path').textContent = checks.map(cb => cb.dataset.name).join(', ');
+  document.getElementById('modal-admin-hint').style.display = 'block';
+  document.getElementById('delete-modal').style.display = 'flex';
+  window._batchDelete = checks.map(cb => cb.dataset.path);
+  document.querySelector('.btn-trash').onclick = () => doBatchDelete(false);
+  document.querySelector('.btn-perm').onclick = () => doBatchDelete(true);
+}
+
+function renderLargest() {
+  const minSize = parseInt(document.getElementById('size-filter').value), nameFilter = document.getElementById('name-filter').value.toLowerCase();
+  let items = data.largest.filter(f => f.size >= minSize);
+  if (nameFilter) items = items.filter(f => f.name.toLowerCase().includes(nameFilter));
+  document.getElementById('largest-list').innerHTML = items.slice(0,30).map(f => {
+    const ep = f.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'"), en = f.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<li class="file-item"><span class="fi-icon">${getFileIcon(f.name)}</span>
+      <div class="fi-info"><div class="fi-name">${f.name}</div><div class="fi-path">${shortPath(f.path)}</div></div>
+      <span class="fi-size">${fmt(f.size)}</span>
+      <div class="fi-actions"><button class="btn-sm btn-reveal" onclick="reveal('${ep}')">Mostrar</button>
+        <button class="btn-sm btn-delete" onclick="confirmDelete('${ep}','${en}',${f.size})">Eliminar</button></div></li>`;
+  }).join('') || '<div style="color:var(--text2);padding:16px;">Sin resultados</div>';
+}
+
+async function reveal(path) { await fetch('/api/reveal?path=' + encodeURIComponent(path)); }
+function confirmDelete(path, name, size) {
+  deletePath = path; deleteName = name;
+  document.getElementById('modal-name').textContent = name;
+  document.getElementById('modal-size').textContent = fmt(size);
+  document.getElementById('modal-path').textContent = path;
+  document.getElementById('modal-admin-hint').style.display = (path.includes('/Library/') || path.includes('/Containers/') || path.startsWith('/Applications/')) ? 'block' : 'none';
+  document.getElementById('delete-modal').style.display = 'flex';
+}
+function closeModal() { document.getElementById('delete-modal').style.display = 'none'; }
+async function doDelete(permanent) {
+  closeModal();
+  try {
+    const r = await (await fetch(`/api/delete?path=${encodeURIComponent(deletePath)}&permanent=${permanent}`, {method:'POST'})).json();
+    if (r.status === 'ok') {
+      showToast(r.partial ? `${fmt(r.freed)} liberados (${fmt(r.remaining)} protegidos)` : `${deleteName} eliminado — ${fmt(r.freed)} liberados`);
+      startScan();
+    } else showToast('Error: ' + (r.detail || 'fallo'));
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+function showToast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 4000);
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  localStorage.setItem('dv-theme', isDark ? 'light' : 'dark');
+  updateThemeIcon();
+}
+function updateThemeIcon() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.querySelectorAll('.theme-toggle').forEach(b => b.textContent = isDark ? '☀️' : '🌙');
+}
+(function initTheme() {
+  const saved = localStorage.getItem('dv-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  updateThemeIcon();
+})();
+
+loadDisks();
+fetch('/api/status').then(r => r.json()).then(s => { if (s.status === 'ready') loadResults(); });
+</script>
+</body>
+</html>
