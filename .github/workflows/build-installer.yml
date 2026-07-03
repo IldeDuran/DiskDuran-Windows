@@ -46,7 +46,16 @@ jobs:
             --collect-all webview `
             main.py
 
+      - name: Upload unsigned exe for signing
+        id: upload-unsigned
+        if: vars.SIGNPATH_READY == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiskDuran-unsigned
+          path: dist/DiskDuran/DiskDuran.exe
+
       - name: Sign exe with SignPath
+        id: sign
         if: vars.SIGNPATH_READY == 'true'
         uses: signpath/github-action-submit-signing-request@v1
         with:
@@ -57,7 +66,12 @@ jobs:
           artifact-configuration-slug: "default"
           github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
           wait-for-completion: true
-          output-artifact-directory: "dist/DiskDuran"
+          output-artifact-directory: signed-output
+
+      - name: Replace exe with signed version
+        if: vars.SIGNPATH_READY == 'true' && steps.sign.outcome == 'success'
+        run: |
+          Copy-Item "signed-output\DiskDuran.exe" "dist\DiskDuran\DiskDuran.exe" -Force
 
       - name: Build installer with Inno Setup
         run: |
