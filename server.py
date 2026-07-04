@@ -526,16 +526,70 @@ async def api_browse(path: str):
     return {"items": items}
 
 
+CRITICAL_PATHS = {
+    "AppData\\Roaming\\Microsoft",
+    "AppData\\Local\\Microsoft\\Windows",
+    "AppData\\Local\\Microsoft\\WindowsApps",
+    "AppData\\Local\\Microsoft\\Credentials",
+    "AppData\\Roaming\\Microsoft\\Windows\\Start Menu",
+    "AppData\\Roaming\\Microsoft\\Windows\\SendTo",
+    "AppData\\Roaming\\Microsoft\\Windows\\Templates",
+    "AppData\\Roaming\\Microsoft\\Protect",
+    "AppData\\Roaming\\Microsoft\\Credentials",
+    "AppData\\Roaming\\Microsoft\\SystemCertificates",
+    "AppData\\Local\\Microsoft\\Vault",
+}
+
+CRITICAL_FILES = {"ntuser.dat", "ntuser.dat.log", "ntuser.ini", "desktop.ini"}
+
+SYSTEM_ROOTS = {"C:\\Windows", "C:\\$Recycle.Bin", "C:\\System Volume Information",
+                "C:\\Recovery", "C:\\ProgramData\\Microsoft"}
+
+
+def is_safe_path(path: str) -> tuple[bool, str]:
+    resolved = os.path.realpath(path)
+    home = os.path.realpath(get_home())
+    prog_files = os.path.realpath(os.environ.get("ProgramFiles", "C:\\Program Files"))
+    prog_x86 = os.path.realpath(os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)"))
+
+    for sr in SYSTEM_ROOTS:
+        if resolved.lower().startswith(sr.lower()):
+            return False, "Ruta de sistema protegida"
+
+    if resolved.lower() == home.lower():
+        return False, "No se puede borrar la carpeta de usuario"
+
+    basename = os.path.basename(resolved).lower()
+    if basename in CRITICAL_FILES:
+        return False, f"Archivo crítico del sistema: {basename}"
+
+    if resolved.startswith(home):
+        relative = resolved[len(home):].lstrip("\\")
+        for cp in CRITICAL_PATHS:
+            if relative.lower() == cp.lower() or relative.lower().startswith(cp.lower() + "\\"):
+                return False, f"Carpeta crítica protegida: {os.path.basename(resolved)}"
+
+    in_home = resolved.startswith(home)
+    in_prog = resolved.startswith(prog_files) or resolved.startswith(prog_x86)
+    in_volume = resolved.upper()[0:3] != "C:\\" and len(resolved) > 3
+
+    if not (in_home or in_prog or in_volume):
+        return False, "Ruta no permitida"
+
+    return True, ""
+
+
 @app.get("/api/reveal")
 async def api_reveal(path: str):
-    home = get_home()
-    if not path.startswith(home) and not path.startswith("C:\\Program Files"):
+    resolved = os.path.realpath(path)
+    home = os.path.realpath(get_home())
+    if not resolved.startswith(home) and not resolved.startswith(os.path.realpath("C:\\Program Files")):
         return {"status": "error", "detail": "Ruta no permitida"}
     try:
-        if os.path.isdir(path):
-            subprocess.Popen(["explorer", path])
+        if os.path.isdir(resolved):
+            subprocess.Popen(["explorer", resolved])
         else:
-            subprocess.Popen(["explorer", "/select,", path])
+            subprocess.Popen(["explorer", "/select,", resolved])
     except:
         pass
     return {"status": "ok"}
@@ -543,34 +597,32 @@ async def api_reveal(path: str):
 
 @app.post("/api/delete")
 async def api_delete(path: str, permanent: bool = False):
-    home = get_home()
-    prog_files = os.environ.get("ProgramFiles", "C:\\Program Files")
-    prog_x86 = os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)")
+    safe, reason = is_safe_path(path)
+    if not safe:
+        return {"status": "error", "detail": reason}
 
-    allowed = path.startswith(home) or path.startswith(prog_files) or path.startswith(prog_x86)
-    if not allowed:
-        return {"status": "error", "detail": "Ruta no permitida"}
+    resolved = os.path.realpath(path)
 
     try:
-        size = dir_size(path) if os.path.isdir(path) else os.path.getsize(path)
+        size = dir_size(resolved) if os.path.isdir(resolved) else os.path.getsize(resolved)
     except:
         size = 0
 
     try:
         if permanent:
-            if os.path.isdir(path):
-                shutil.rmtree(path, ignore_errors=True)
+            if os.path.isdir(resolved):
+                shutil.rmtree(resolved, ignore_errors=True)
             else:
-                os.remove(path)
+                os.remove(resolved)
         else:
             try:
                 from send2trash import send2trash
-                send2trash(path)
+                send2trash(resolved)
             except ImportError:
-                if os.path.isdir(path):
-                    shutil.rmtree(path, ignore_errors=True)
+                if os.path.isdir(resolved):
+                    shutil.rmtree(resolved, ignore_errors=True)
                 else:
-                    os.remove(path)
+                    os.remove(resolved)
         return {"status": "ok", "freed": size}
     except PermissionError:
         return {"status": "error", "detail": "Se requieren permisos de administrador"}
