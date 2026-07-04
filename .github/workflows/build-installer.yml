@@ -59,7 +59,8 @@ jobs:
             -ProjectSlug "DiskDuran" `
             -SigningPolicySlug "release-signing" `
             -OutputArtifactPath "dist\DiskDuran\DiskDuran.exe" `
-            -WaitForCompletion
+            -WaitForCompletion `
+            -Force
 
       - name: Build installer with Inno Setup
         run: |
